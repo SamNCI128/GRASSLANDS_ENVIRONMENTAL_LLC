@@ -937,6 +937,14 @@ function pepyBars(){
 .band.tint .bell{background:var(--paper)}
 .bell svg{width:100%;height:auto;overflow:visible}
 .bcurve{fill:rgba(14,46,64,.09);stroke:var(--navy);stroke-width:2}
+/* guía que une cada rótulo con su propia línea */
+.blead{stroke-width:1.4;opacity:.5;stroke-dasharray:3 3}
+.blead.you{stroke:var(--ox)}
+.blead.avg{stroke:var(--navy)}
+.blead.best{stroke:var(--sage)}
+.bell.dark .blead.you{stroke:var(--ox-lt)}
+.bell.dark .blead.avg{stroke:rgba(246,238,221,.85)}
+.bell.dark .blead.best{stroke:#7FC7AA}
 .bmark{stroke-width:2.4}
 .bmark.you{stroke:var(--ox)}
 .bmark.avg{stroke:var(--navy);stroke-dasharray:5 4}
@@ -4118,7 +4126,9 @@ function hookBell(){
   });
 
   /* stack only what still overlaps after that */
-  var baseRow = narrow ? 26 : 30, rowStep = narrow ? 70 : 48;
+  /* más separación entre el bloque de rótulos y los marcadores: con 26
+     la guía medía 10 unidades y no llegaba a distinguir nada */
+  var baseRow = narrow ? 64 : 46, rowStep = narrow ? 70 : 48;
   var maxRow = 0, taken = [];
   placed.forEach(function(p){
     var row = 0;
@@ -4156,15 +4166,33 @@ function hookBell(){
       "$" + (v/1000).toFixed(0) + "k"));
   });
 
-  /* markers, drawn on the rows worked out above */
+  /* Marcadores, en tres pasadas sobre las filas ya calculadas: líneas,
+     guías y texto. En un solo bucle la guía de un marcador podía tachar
+     el rótulo del anterior. */
   placed.forEach(function(p){
-    var xv = p.xv, mrk = p.mrk, off = baseRow + p.row * rowStep;
-    g.appendChild(mk("line", { x1:xv, x2:xv, y1:T - 6, y2:T + ih, "class":"bmark " + mrk[1] }));
-    g.appendChild(mk("circle", { cx:xv, cy:T - 6, r:4.5, fill:"currentColor", "class":"blab " + mrk[1] }));
-    g.appendChild(mk("text", { x:xv + p.dx, y:T - off - lgap, "class":"blab " + mrk[1], "text-anchor":p.anchor },
-      mrk[2].toUpperCase()));
-    g.appendChild(mk("text", { x:xv + p.dx, y:T - off, "class":"bval " + mrk[1], "text-anchor":p.anchor },
-      money(mrk[0])));
+    g.appendChild(mk("line", { x1:p.xv, x2:p.xv, y1:T - 6, y2:T + ih,
+      "class":"bmark " + p.mrk[1] }));
+  });
+
+  /* la guía que sube del punto hasta su propio rótulo: apilados sin ella
+     no se distingue cuál corresponde a cuál línea */
+  placed.forEach(function(p){
+    var off = baseRow + p.row * rowStep;
+    var top = T - off + 7;
+    g.appendChild(mk("line", { x1:p.xv, x2:p.xv, y1:T - 9, y2:top,
+      "class":"blead " + p.mrk[1] }));
+    g.appendChild(mk("line", { x1:p.xv, x2:p.xv + p.dx * 0.7, y1:top, y2:top,
+      "class":"blead " + p.mrk[1] }));
+    g.appendChild(mk("circle", { cx:p.xv, cy:T - 6, r:4.5, fill:"currentColor",
+      "class":"blab " + p.mrk[1] }));
+  });
+
+  placed.forEach(function(p){
+    var off = baseRow + p.row * rowStep;
+    g.appendChild(mk("text", { x:p.xv + p.dx, y:T - off - lgap,
+      "class":"blab " + p.mrk[1], "text-anchor":p.anchor }, p.mrk[2].toUpperCase()));
+    g.appendChild(mk("text", { x:p.xv + p.dx, y:T - off,
+      "class":"bval " + p.mrk[1], "text-anchor":p.anchor }, money(p.mrk[0])));
   });
 
   /* gap call-out between you and best in class */
